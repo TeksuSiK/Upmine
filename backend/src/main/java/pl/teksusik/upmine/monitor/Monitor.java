@@ -1,7 +1,11 @@
 package pl.teksusik.upmine.monitor;
 
+import pl.teksusik.upmine.heartbeat.Heartbeat;
+
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public abstract class Monitor {
@@ -11,6 +15,8 @@ public abstract class Monitor {
     private MonitorType type;
     private Instant creationDate;
     private Duration checkInterval;
+
+    private List<Heartbeat> heartbeats = new ArrayList<>();
 
     public Monitor(UUID uuid) {
         this.uuid = uuid;
@@ -58,5 +64,13 @@ public abstract class Monitor {
 
     public void setCheckInterval(Duration checkInterval) {
         this.checkInterval = checkInterval;
+    }
+
+    public List<Heartbeat> getHeartbeats() {
+        return heartbeats;
+    }
+
+    public void addHeartbeat(Heartbeat heartbeat) {
+        this.heartbeats.add(heartbeat);
     }
 }

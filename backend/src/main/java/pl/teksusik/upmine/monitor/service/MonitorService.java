@@ -17,6 +17,7 @@ public class MonitorService {
     public Heartbeat checkAvailability(Monitor monitor) {
         AvailabilityChecker availabilityChecker = this.availabilityCheckers.get(monitor.getType());
         Heartbeat heartbeat = availabilityChecker.checkAvailability(monitor);
+        monitor.addHeartbeat(heartbeat);
 
         return heartbeat;
     }
