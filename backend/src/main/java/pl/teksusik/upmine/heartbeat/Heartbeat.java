@@ -14,6 +14,11 @@ public class Heartbeat {
         this.uuid = uuid;
     }
 
+    public Heartbeat(UUID uuid, Instant creationDate) {
+        this.uuid = uuid;
+        this.creationDate = creationDate;
+    }
+
     public Heartbeat(UUID uuid, Status status, String message, Instant creationDate) {
         this.uuid = uuid;
         this.status = status;
