@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.availability.AvailabilityChecker;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.heartbeat.HeartbeatFactory;
 import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
@@ -29,11 +30,7 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
             uri = new URI(httpMonitor.getUrl());
         } catch (URISyntaxException exception) {
             LOGGER.error("An error occurred while getting the URI", exception);
-            Heartbeat heartbeat = new Heartbeat(UUID.randomUUID());
-            heartbeat.setStatus(Status.NOT_AVAILABLE);
-            heartbeat.setMessage(exception.getMessage());
-            heartbeat.setCreationDate(Instant.now());
-            return heartbeat;
+            return HeartbeatFactory.notAvailable(exception.getMessage());
         }
 
         HttpClient client = HttpClient.newBuilder()
@@ -49,23 +46,19 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("An error occurred while sending the request", exception);
-            Heartbeat heartbeat = new Heartbeat(UUID.randomUUID());
-            heartbeat.setStatus(Status.NOT_AVAILABLE);
-            heartbeat.setMessage(exception.getMessage());
-            heartbeat.setCreationDate(Instant.now());
-            return heartbeat;
+            return HeartbeatFactory.notAvailable(exception.getMessage());
         }
 
-        Heartbeat heartbeat = new Heartbeat(UUID.randomUUID());
+        Heartbeat heartbeat = HeartbeatFactory.undefined();
 
         int responseCode = response.statusCode();
-        heartbeat.setMessage(String.valueOf(responseCode));
         if (httpMonitor.getAcceptedCodes().contains(responseCode)) {
             heartbeat.setStatus(Status.AVAILABLE);
         } else {
             heartbeat.setStatus(Status.NOT_AVAILABLE);
         }
 
+        heartbeat.setMessage(String.valueOf(responseCode));
         heartbeat.setCreationDate(Instant.now());
 
         return heartbeat;
