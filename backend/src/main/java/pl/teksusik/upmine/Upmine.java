@@ -1,7 +1,11 @@
 package pl.teksusik.upmine;
 
-public class Upmine {
-    public void launch() {
+import pl.teksusik.upmine.monitor.service.MonitorService;
 
+public class Upmine {
+    private MonitorService monitorService;
+
+    public void launch() {
+        this.monitorService = new MonitorService();
     }
 }
