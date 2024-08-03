@@ -1,5 +1,7 @@
 package pl.teksusik.upmine.availability.http;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.availability.AvailabilityChecker;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.heartbeat.Status;
@@ -16,6 +18,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public class HttpAvailabilityChecker implements AvailabilityChecker {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpAvailabilityChecker.class);
 
     @Override
     public Heartbeat checkAvailability(Monitor monitor) {
@@ -25,6 +28,7 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
         try {
             uri = new URI(httpMonitor.getUrl());
         } catch (URISyntaxException exception) {
+            LOGGER.error("An error occurred while getting the URI", exception);
             Heartbeat heartbeat = new Heartbeat(UUID.randomUUID());
             heartbeat.setStatus(Status.NOT_AVAILABLE);
             heartbeat.setMessage(exception.getMessage());
@@ -44,6 +48,7 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
         try {
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (IOException | InterruptedException exception) {
+            LOGGER.error("An error occurred while sending the request", exception);
             Heartbeat heartbeat = new Heartbeat(UUID.randomUUID());
             heartbeat.setStatus(Status.NOT_AVAILABLE);
             heartbeat.setMessage(exception.getMessage());
