@@ -47,6 +47,8 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("An error occurred while sending the request", exception);
             return HeartbeatFactory.notAvailable(exception.getMessage());
+        } finally {
+            client.close();
         }
 
         Heartbeat heartbeat = HeartbeatFactory.undefined();
