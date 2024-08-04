@@ -14,4 +14,8 @@ public class ApplicationConfiguration extends OkaeriConfig {
             return jdbcUrl;
         }
     }
+
+    public StorageConfiguration getStorageConfiguration() {
+        return storageConfiguration;
+    }
 }
