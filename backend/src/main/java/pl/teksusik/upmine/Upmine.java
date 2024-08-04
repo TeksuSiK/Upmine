@@ -1,5 +1,6 @@
 package pl.teksusik.upmine;
 
+import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
 import pl.teksusik.upmine.configuration.ApplicationConfiguration;
 import pl.teksusik.upmine.configuration.ConfigurationFactory;
 import pl.teksusik.upmine.heartbeat.repository.HeartbeatRepository;
@@ -19,17 +20,25 @@ public class Upmine {
     private MonitorRepository monitorRepository;
     private MonitorService monitorService;
 
+    private AvailabilityCheckerScheduler availabilityCheckerScheduler;
+
     public void launch() {
         this.configuration = ConfigurationFactory.createConfiguration(ApplicationConfiguration.class);
 
         ApplicationConfiguration.StorageConfiguration storageConfiguration = this.configuration.getStorageConfiguration();
         this.storage = new SQLStorage(storageConfiguration.getJdbcUrl());
 
+        this.availabilityCheckerScheduler = new AvailabilityCheckerScheduler();
+
         this.heartbeatRepository = new SQLHeartbeatRepository(this.storage);
         this.heartbeatRepository.createTablesIfNotExists();
 
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository);
         this.monitorRepository.createTablesIfNotExists();
-        this.monitorService = new MonitorService();
+        this.monitorService = new MonitorService(this.monitorRepository, this.availabilityCheckerScheduler);
+
+        this.availabilityCheckerScheduler.setMonitorService(monitorService);
+        this.availabilityCheckerScheduler.startScheduler();
+        this.availabilityCheckerScheduler.setupJobsForExistingMonitors();
     }
 }
