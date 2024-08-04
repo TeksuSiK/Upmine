@@ -19,6 +19,8 @@ dependencies {
 
     implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:5.0.2")
 
+    implementation("org.quartz-scheduler:quartz:2.3.0")
+
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
