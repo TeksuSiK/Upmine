@@ -22,6 +22,8 @@ dependencies {
     implementation("org.quartz-scheduler:quartz:2.3.0")
 
     implementation("io.javalin:javalin:6.1.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
