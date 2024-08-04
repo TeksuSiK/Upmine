@@ -9,6 +9,7 @@ import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.monitor.repository.SQLMonitorRepository;
 import pl.teksusik.upmine.monitor.service.MonitorService;
 import pl.teksusik.upmine.storage.SQLStorage;
+import pl.teksusik.upmine.web.UpmineWebServer;
 
 public class Upmine {
     private ApplicationConfiguration configuration;
@@ -21,6 +22,8 @@ public class Upmine {
     private MonitorService monitorService;
 
     private AvailabilityCheckerScheduler availabilityCheckerScheduler;
+
+    private UpmineWebServer webServer;
 
     public void launch() {
         this.configuration = ConfigurationFactory.createConfiguration(ApplicationConfiguration.class);
@@ -40,5 +43,9 @@ public class Upmine {
         this.availabilityCheckerScheduler.setMonitorService(monitorService);
         this.availabilityCheckerScheduler.startScheduler();
         this.availabilityCheckerScheduler.setupJobsForExistingMonitors();
+
+        ApplicationConfiguration.WebConfiguration webConfiguration = this.configuration.getWebConfiguration();
+        this.webServer = new UpmineWebServer(webConfiguration);
+        this.webServer.launch();
     }
 }
