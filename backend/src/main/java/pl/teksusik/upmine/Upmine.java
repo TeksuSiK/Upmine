@@ -26,8 +26,10 @@ public class Upmine {
         this.storage = new SQLStorage(storageConfiguration.getJdbcUrl());
 
         this.heartbeatRepository = new SQLHeartbeatRepository(this.storage);
+        this.heartbeatRepository.createTablesIfNotExists();
 
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository);
+        this.monitorRepository.createTablesIfNotExists();
         this.monitorService = new MonitorService();
     }
 }
