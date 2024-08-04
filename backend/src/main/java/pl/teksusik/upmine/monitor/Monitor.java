@@ -70,6 +70,10 @@ public abstract class Monitor {
         return heartbeats;
     }
 
+    public void setHeartbeats(List<Heartbeat> heartbeats) {
+        this.heartbeats = heartbeats;
+    }
+
     public void addHeartbeat(Heartbeat heartbeat) {
         this.heartbeats.add(heartbeat);
     }
