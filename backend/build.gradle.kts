@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation("org.slf4j:slf4j-api:2.0.13")
+    implementation("org.slf4j:slf4j-simple:2.0.13")
 
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.4.1")
