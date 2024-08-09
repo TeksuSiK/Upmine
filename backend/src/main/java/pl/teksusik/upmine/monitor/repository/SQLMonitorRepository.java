@@ -117,15 +117,15 @@ public class SQLMonitorRepository implements MonitorRepository {
                 monitorStatement.setLong(5, monitor.getCheckInterval().toSeconds());
 
                 if (monitor instanceof HttpMonitor httpMonitor) {
-                    monitorStatement.setString(6, httpMonitor.getUrl());
-                    monitorStatement.setString(7, httpMonitor.getAcceptedCodes().stream()
+                    monitorStatement.setString(6, httpMonitor.getHttpUrl());
+                    monitorStatement.setString(7, httpMonitor.getHttpAcceptedCodes().stream()
                             .map(String::valueOf)
                             .collect(Collectors.joining(";")));
                     monitorStatement.setNull(8, Types.VARCHAR);
                 } else if (monitor instanceof PingMonitor pingMonitor) {
                     monitorStatement.setNull(6, Types.VARCHAR);
                     monitorStatement.setNull(7, Types.VARCHAR);
-                    monitorStatement.setString(8, pingMonitor.getAddress());
+                    monitorStatement.setString(8, pingMonitor.getPingAddress());
                 }
                 monitorStatement.executeUpdate();
 

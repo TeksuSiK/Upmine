@@ -8,18 +8,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 public class PingMonitor extends Monitor {
-    private String address;
+    private String pingAddress;
 
-    public PingMonitor(UUID uuid, String name, MonitorType type, Instant creationDate, Duration checkInterval, String address) {
+    public PingMonitor(UUID uuid, String name, MonitorType type, Instant creationDate, Duration checkInterval, String pingAddress) {
         super(uuid, name, type, creationDate, checkInterval);
-        this.address = address;
+        this.pingAddress = pingAddress;
     }
 
-    public String getAddress() {
-        return address;
+    public String getPingAddress() {
+        return pingAddress;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setPingAddress(String pingAddress) {
+        this.pingAddress = pingAddress;
     }
 }

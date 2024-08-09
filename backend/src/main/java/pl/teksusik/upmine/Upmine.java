@@ -5,6 +5,7 @@ import pl.teksusik.upmine.configuration.ApplicationConfiguration;
 import pl.teksusik.upmine.configuration.ConfigurationFactory;
 import pl.teksusik.upmine.heartbeat.repository.HeartbeatRepository;
 import pl.teksusik.upmine.heartbeat.repository.SQLHeartbeatRepository;
+import pl.teksusik.upmine.monitor.controller.MonitorController;
 import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.monitor.repository.SQLMonitorRepository;
 import pl.teksusik.upmine.monitor.service.MonitorService;
@@ -20,6 +21,7 @@ public class Upmine {
 
     private MonitorRepository monitorRepository;
     private MonitorService monitorService;
+    private MonitorController monitorController;
 
     private AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
@@ -39,6 +41,7 @@ public class Upmine {
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository);
         this.monitorRepository.createTablesIfNotExists();
         this.monitorService = new MonitorService(this.monitorRepository, this.availabilityCheckerScheduler);
+        this.monitorController = new MonitorController(this.monitorService);
 
         this.availabilityCheckerScheduler.setMonitorService(monitorService);
         this.availabilityCheckerScheduler.startScheduler();
@@ -47,5 +50,10 @@ public class Upmine {
         ApplicationConfiguration.WebConfiguration webConfiguration = this.configuration.getWebConfiguration();
         this.webServer = new UpmineWebServer(webConfiguration);
         this.webServer.launch();
+        this.webServer.get("/api/monitors", this.monitorController::getAllMonitors)
+                .get("/api/monitors/{uuid}", this.monitorController::getMonitorByUuid)
+                .post("/api/monitors", this.monitorController::createMonitor)
+                .delete("/api/monitors/{uuid}", this.monitorController::deleteMonitorByUuid)
+                .put("/api/monitors/{uuid}", this.monitorController::updateMonitor);
     }
 }

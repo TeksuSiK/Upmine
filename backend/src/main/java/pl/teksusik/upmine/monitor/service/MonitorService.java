@@ -7,15 +7,19 @@ import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
+import pl.teksusik.upmine.monitor.dto.MonitorDto;
+import pl.teksusik.upmine.monitor.http.HttpMonitor;
+import pl.teksusik.upmine.monitor.ping.PingMonitor;
 import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-//TODO Schedule new job at monitor creation, reschedule job at monitor update
 public class MonitorService {
     private final Map<MonitorType, AvailabilityChecker> availabilityCheckers = new HashMap<>(Map.of(
             MonitorType.HTTP, new HttpAvailabilityChecker(),
@@ -49,6 +53,93 @@ public class MonitorService {
     public boolean deleteByUuid(UUID uuid) {
         this.availabilityCheckerScheduler.deleteJob(uuid);
         return this.monitorRepository.deleteByUuid(uuid);
+    }
+
+    public Optional<Monitor> createMonitor(MonitorDto monitorDto) {
+        UUID uuid = UUID.randomUUID();
+        String name = monitorDto.getName();
+
+        MonitorType type = MonitorType.valueOf(monitorDto.getType());
+        Instant creationDate = Instant.now();
+        Duration checkInterval = Duration.ofSeconds(monitorDto.getCheckInterval());
+
+        Monitor monitor;
+        if (type == MonitorType.HTTP) {
+            String url = monitorDto.getHttpUrl();
+            List<Integer> acceptedCodes = monitorDto.getHttpAcceptedCodes();
+
+            monitor = new HttpMonitor(uuid, name, type, creationDate, checkInterval, url, acceptedCodes);
+        } else if (type == MonitorType.PING) {
+            String address = monitorDto.getPingAddress();
+
+            monitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, address);
+        } else {
+            return Optional.empty();
+        }
+
+        Monitor createdMonitor = this.monitorRepository.save(monitor);
+        this.availabilityCheckerScheduler.createJob(createdMonitor);
+        return Optional.of(createdMonitor);
+    }
+
+    public Optional<Monitor> updateMonitor(UUID uuid, MonitorDto monitorDto) {
+        Optional<Monitor> monitorOptional = this.monitorRepository.findByUuid(uuid);
+        if (monitorOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String newName = monitorDto.getName();
+        String newType = monitorDto.getType();
+        Long newCheckInterval = monitorDto.getCheckInterval();
+        String newUrl = monitorDto.getHttpUrl();
+        List<Integer> newAcceptedCodes = monitorDto.getHttpAcceptedCodes();
+        String newAddress = monitorDto.getPingAddress();
+
+        Monitor monitor = monitorOptional.get();
+
+        if (newName != null && !newName.equals(monitor.getName())) {
+            monitor.setName(newName);
+        }
+
+        if (newType != null) {
+            MonitorType monitorType;
+            try {
+                monitorType = MonitorType.valueOf(newType);
+            } catch (IllegalArgumentException exception) {
+                return Optional.empty();
+            }
+
+            if (!monitorType.equals(monitor.getType())) {
+                monitor.setType(monitorType);
+            }
+        }
+
+        if (newCheckInterval != null) {
+            Duration checkInterval = Duration.ofSeconds(newCheckInterval);
+            if (!checkInterval.equals(monitor.getCheckInterval())) {
+                monitor.setCheckInterval(checkInterval);
+            }
+        }
+
+        if (monitor.getType() == MonitorType.HTTP && monitor instanceof HttpMonitor httpMonitor) {
+            if (newUrl != null && !newUrl.equals(httpMonitor.getHttpUrl())) {
+                httpMonitor.setHttpUrl(newUrl);
+            }
+
+            if (newAcceptedCodes != null && !newAcceptedCodes.equals(httpMonitor.getHttpAcceptedCodes())) {
+                httpMonitor.setHttpAcceptedCodes(newAcceptedCodes);
+            }
+        }
+
+        if (monitor.getType() == MonitorType.PING && monitor instanceof PingMonitor pingMonitor) {
+            if (newAddress != null && !newAddress.equals(pingMonitor.getPingAddress())) {
+                pingMonitor.setPingAddress(newAddress);
+            }
+        }
+
+        Monitor savedMonitor = this.monitorRepository.save(monitor);
+        this.availabilityCheckerScheduler.rescheduleJob(savedMonitor);
+        return Optional.of(savedMonitor);
     }
 
     public Heartbeat checkAvailability(Monitor monitor) {
