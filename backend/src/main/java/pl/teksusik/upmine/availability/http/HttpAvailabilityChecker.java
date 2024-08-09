@@ -26,7 +26,7 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
 
         URI uri;
         try {
-            uri = new URI(httpMonitor.getUrl());
+            uri = new URI(httpMonitor.getHttpUrl());
         } catch (URISyntaxException exception) {
             LOGGER.error("An error occurred while getting the URI", exception);
             return HeartbeatFactory.notAvailable(exception.getMessage());
@@ -53,7 +53,7 @@ public class HttpAvailabilityChecker implements AvailabilityChecker {
         Heartbeat heartbeat = HeartbeatFactory.undefined();
 
         int responseCode = response.statusCode();
-        if (httpMonitor.getAcceptedCodes().contains(responseCode)) {
+        if (httpMonitor.getHttpAcceptedCodes().contains(responseCode)) {
             heartbeat.setStatus(Status.AVAILABLE);
         } else {
             heartbeat.setStatus(Status.NOT_AVAILABLE);

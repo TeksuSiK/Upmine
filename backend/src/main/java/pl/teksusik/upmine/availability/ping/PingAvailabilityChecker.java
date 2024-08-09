@@ -21,7 +21,7 @@ public class PingAvailabilityChecker implements AvailabilityChecker {
 
         InetAddress address;
         try {
-            address = InetAddress.getByName(pingMonitor.getAddress());
+            address = InetAddress.getByName(pingMonitor.getPingAddress());
         } catch (UnknownHostException exception) {
             LOGGER.error("An error occured while trying to resolve the IP address", exception);
             return HeartbeatFactory.notAvailable(exception.getMessage());

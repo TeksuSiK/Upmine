@@ -9,28 +9,28 @@ import java.util.List;
 import java.util.UUID;
 
 public class HttpMonitor extends Monitor {
-    private String url;
-    private List<Integer> acceptedCodes;
+    private String httpUrl;
+    private List<Integer> httpAcceptedCodes;
 
-    public HttpMonitor(UUID uuid, String name, MonitorType type, Instant creationDate, Duration checkInterval, String url, List<Integer> acceptedCodes) {
+    public HttpMonitor(UUID uuid, String name, MonitorType type, Instant creationDate, Duration checkInterval, String httpUrl, List<Integer> httpAcceptedCodes) {
         super(uuid, name, type, creationDate, checkInterval);
-        this.url = url;
-        this.acceptedCodes = acceptedCodes;
+        this.httpUrl = httpUrl;
+        this.httpAcceptedCodes = httpAcceptedCodes;
     }
 
-    public String getUrl() {
-        return url;
+    public String getHttpUrl() {
+        return httpUrl;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setHttpUrl(String httpUrl) {
+        this.httpUrl = httpUrl;
     }
 
-    public List<Integer> getAcceptedCodes() {
-        return acceptedCodes;
+    public List<Integer> getHttpAcceptedCodes() {
+        return httpAcceptedCodes;
     }
 
-    public void setAcceptedCodes(List<Integer> acceptedCodes) {
-        this.acceptedCodes = acceptedCodes;
+    public void setHttpAcceptedCodes(List<Integer> httpAcceptedCodes) {
+        this.httpAcceptedCodes = httpAcceptedCodes;
     }
 }
