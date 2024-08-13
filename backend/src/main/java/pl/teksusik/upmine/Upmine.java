@@ -9,6 +9,9 @@ import pl.teksusik.upmine.monitor.controller.MonitorController;
 import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.monitor.repository.SQLMonitorRepository;
 import pl.teksusik.upmine.monitor.service.MonitorService;
+import pl.teksusik.upmine.notification.repository.NotificationRepository;
+import pl.teksusik.upmine.notification.repository.SQLNotificationRepository;
+import pl.teksusik.upmine.notification.service.NotificationService;
 import pl.teksusik.upmine.storage.SQLStorage;
 import pl.teksusik.upmine.web.UpmineWebServer;
 
@@ -18,6 +21,9 @@ public class Upmine {
     private SQLStorage storage;
 
     private HeartbeatRepository heartbeatRepository;
+
+    private NotificationRepository notificationRepository;
+    private NotificationService notificationService;
 
     private MonitorRepository monitorRepository;
     private MonitorService monitorService;
@@ -37,6 +43,10 @@ public class Upmine {
 
         this.heartbeatRepository = new SQLHeartbeatRepository(this.storage);
         this.heartbeatRepository.createTablesIfNotExists();
+
+        this.notificationRepository = new SQLNotificationRepository(this.storage);
+        this.notificationRepository.createTablesIfNotExists();
+        this.notificationService = new NotificationService(this.notificationRepository);
 
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository);
         this.monitorRepository.createTablesIfNotExists();
