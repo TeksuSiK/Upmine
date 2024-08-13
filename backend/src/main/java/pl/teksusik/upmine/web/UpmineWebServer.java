@@ -14,10 +14,11 @@ public class UpmineWebServer {
         this.webConfiguration = webConfiguration;
     }
 
-    public void launch() {
+    public UpmineWebServer launch() {
         this.javalin = Javalin.create()
                 .exception(JsonParseException.class, new JsonParseExceptionHandler()::handle)
                 .start(this.webConfiguration.getHostname(), this.webConfiguration.getPort());
+        return this;
     }
 
     public UpmineWebServer get(String endpoint, Handler handler) {

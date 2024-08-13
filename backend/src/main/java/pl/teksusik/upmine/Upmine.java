@@ -63,8 +63,8 @@ public class Upmine {
 
         ApplicationConfiguration.WebConfiguration webConfiguration = this.configuration.getWebConfiguration();
         this.webServer = new UpmineWebServer(webConfiguration);
-        this.webServer.launch();
-        this.webServer.get("/api/monitors", this.monitorController::getAllMonitors)
+        this.webServer.launch()
+                .get("/api/monitors", this.monitorController::getAllMonitors)
                 .get("/api/monitors/{uuid}", this.monitorController::getMonitorByUuid)
                 .post("/api/monitors", this.monitorController::createMonitor)
                 .delete("/api/monitors/{uuid}", this.monitorController::deleteMonitorByUuid)
