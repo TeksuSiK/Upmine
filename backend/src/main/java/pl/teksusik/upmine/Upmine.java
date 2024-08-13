@@ -48,7 +48,7 @@ public class Upmine {
         this.notificationRepository.createTablesIfNotExists();
         this.notificationService = new NotificationService(this.notificationRepository);
 
-        this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository);
+        this.monitorRepository = new SQLMonitorRepository(this.storage, this.heartbeatRepository, this.notificationRepository);
         this.monitorRepository.createTablesIfNotExists();
         this.monitorService = new MonitorService(this.monitorRepository, this.availabilityCheckerScheduler);
         this.monitorController = new MonitorController(this.monitorService);
