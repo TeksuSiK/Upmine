@@ -6,6 +6,8 @@ import pl.teksusik.upmine.notification.NotificationSender;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.NotificationType;
 import pl.teksusik.upmine.notification.discord.DiscordNotificationSender;
+import pl.teksusik.upmine.notification.discord.DiscordNotificationSettings;
+import pl.teksusik.upmine.notification.dto.NotificationSettingsDto;
 import pl.teksusik.upmine.notification.repository.NotificationRepository;
 
 import java.util.HashMap;
@@ -58,5 +60,62 @@ public class NotificationService {
 
             sender.sendNotification(monitor, heartbeat, settings);
         }
+    }
+
+    public Optional<NotificationSettings> createNotificationSettings(NotificationSettingsDto notificationSettingsDto) {
+        UUID uuid = UUID.randomUUID();
+        String name = notificationSettingsDto.getName();
+        NotificationType type = NotificationType.valueOf(notificationSettingsDto.getType());
+
+        NotificationSettings notificationSettings;
+        if (type == NotificationType.DISCORD) {
+            String discordWebhookUrl = notificationSettingsDto.getDiscordWebhookUrl();
+            notificationSettings = new DiscordNotificationSettings(uuid, name, type, discordWebhookUrl);
+        } else {
+            return Optional.empty();
+        }
+
+        NotificationSettings createdNotificationSettings = this.notificationRepository.save(notificationSettings);
+        return Optional.ofNullable(createdNotificationSettings);
+    }
+
+    public Optional<NotificationSettings> updateNotificationSettings(UUID uuid, NotificationSettingsDto notificationSettingsDto) {
+        Optional<NotificationSettings> notificationSettingsOptional = this.notificationRepository.findByUuid(uuid);
+        if (notificationSettingsOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String newName = notificationSettingsDto.getName();
+        String newType = notificationSettingsDto.getType();
+
+        String newDiscordWebhookUrl = notificationSettingsDto.getDiscordWebhookUrl();
+
+        NotificationSettings notificationSettings = notificationSettingsOptional.get();
+
+        if (newName != null && !newName.equals(notificationSettings.getName())) {
+            notificationSettings.setName(newName);
+        }
+
+        if (newType != null) {
+            NotificationType notificationType;
+            try {
+                notificationType = NotificationType.valueOf(newType);
+            } catch (IllegalArgumentException exception) {
+                return Optional.empty();
+            }
+
+            if (!notificationType.equals(notificationSettings.getType())) {
+                notificationSettings.setType(notificationType);
+            }
+        }
+
+        if (notificationSettings.getType() == NotificationType.DISCORD && notificationSettings instanceof DiscordNotificationSettings discordNotificationSettings) {
+            if (newDiscordWebhookUrl != null && !newDiscordWebhookUrl.equals(discordNotificationSettings.getDiscordWebhookUrl())) {
+                discordNotificationSettings.setDiscordWebhookUrl(newDiscordWebhookUrl);
+            }
+        }
+
+        NotificationSettings savedNotificationSettings = this.notificationRepository.save(notificationSettings);
+        return Optional.ofNullable(savedNotificationSettings);
     }
 }

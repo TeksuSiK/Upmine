@@ -11,6 +11,8 @@ import pl.teksusik.upmine.monitor.dto.MonitorDto;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.ping.PingMonitor;
 import pl.teksusik.upmine.monitor.repository.MonitorRepository;
+import pl.teksusik.upmine.notification.NotificationSettings;
+import pl.teksusik.upmine.notification.service.NotificationService;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,10 +28,12 @@ public class MonitorService {
             MonitorType.PING, new PingAvailabilityChecker()
     ));
 
+    private final NotificationService notificationService;
     private final MonitorRepository monitorRepository;
     private final AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
-    public MonitorService(MonitorRepository monitorRepository, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+    public MonitorService(NotificationService notificationService, MonitorRepository monitorRepository, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+        this.notificationService = notificationService;
         this.monitorRepository = monitorRepository;
         this.availabilityCheckerScheduler = availabilityCheckerScheduler;
     }
@@ -94,6 +98,7 @@ public class MonitorService {
         String newUrl = monitorDto.getHttpUrl();
         List<Integer> newAcceptedCodes = monitorDto.getHttpAcceptedCodes();
         String newAddress = monitorDto.getPingAddress();
+        List<String> newNotificationSettings = monitorDto.getNotificationSettings();
 
         Monitor monitor = monitorOptional.get();
 
@@ -135,6 +140,17 @@ public class MonitorService {
             if (newAddress != null && !newAddress.equals(pingMonitor.getPingAddress())) {
                 pingMonitor.setPingAddress(newAddress);
             }
+        }
+
+        if (newNotificationSettings != null) {
+            List<NotificationSettings> newNotificationSettingsList = newNotificationSettings.stream()
+                    .map(UUID::fromString)
+                    .map(this.notificationService::findByUuid)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+
+            monitor.setNotificationSettings(newNotificationSettingsList);
         }
 
         Monitor savedMonitor = this.monitorRepository.save(monitor);

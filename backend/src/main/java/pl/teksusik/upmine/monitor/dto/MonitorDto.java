@@ -9,6 +9,7 @@ public class MonitorDto {
     private String httpUrl;
     private List<Integer> httpAcceptedCodes;
     private String pingAddress;
+    private List<String> notificationSettings;
 
     public MonitorDto() {
     }
@@ -35,5 +36,9 @@ public class MonitorDto {
 
     public String getPingAddress() {
         return pingAddress;
+    }
+
+    public List<String> getNotificationSettings() {
+        return notificationSettings;
     }
 }
