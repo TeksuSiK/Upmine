@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.service.MonitorService;
+import pl.teksusik.upmine.notification.service.NotificationService;
 
 import java.util.UUID;
 
@@ -21,11 +22,12 @@ public class AvailabilityCheckerScheduler {
 
     private Scheduler scheduler;
     private MonitorService monitorService;
+    private NotificationService notificationService;
 
     public void startScheduler() {
         try {
             this.scheduler = StdSchedulerFactory.getDefaultScheduler();
-            this.scheduler.setJobFactory(new AvailabilityCheckerJobFactory(this.monitorService));
+            this.scheduler.setJobFactory(new AvailabilityCheckerJobFactory(this.monitorService, this.notificationService));
             this.scheduler.start();
         } catch (SchedulerException exception) {
             LOGGER.error("An error occurred while starting the scheduler", exception);
@@ -82,5 +84,9 @@ public class AvailabilityCheckerScheduler {
 
     public void setMonitorService(MonitorService monitorService) {
         this.monitorService = monitorService;
+    }
+
+    public void setNotificationService(NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 }

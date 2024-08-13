@@ -8,6 +8,8 @@ import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.ping.PingMonitor;
+import pl.teksusik.upmine.notification.NotificationSettings;
+import pl.teksusik.upmine.notification.repository.NotificationRepository;
 import pl.teksusik.upmine.storage.SQLStorage;
 
 import java.sql.Connection;
@@ -31,10 +33,12 @@ public class SQLMonitorRepository implements MonitorRepository {
 
     private final SQLStorage storage;
     private final HeartbeatRepository heartbeatRepository;
+    private final NotificationRepository notificationRepository;
 
-    public SQLMonitorRepository(SQLStorage storage, HeartbeatRepository heartbeatRepository) {
+    public SQLMonitorRepository(SQLStorage storage, HeartbeatRepository heartbeatRepository, NotificationRepository notificationRepository) {
         this.storage = storage;
         this.heartbeatRepository = heartbeatRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     private static final String CREATE_MONITOR = """
@@ -50,6 +54,22 @@ public class SQLMonitorRepository implements MonitorRepository {
             );
             """;
 
+    private static final String CREATE_MONITOR_NOTIFICATIONS = """
+            CREATE TABLE IF NOT EXISTS `monitor_notifications` (
+            	`monitor_uuid` varchar(36) NOT NULL,
+                `notification_settings_uuid` varchar(36) NOT NULL,
+                CONSTRAINT `monitor_notification` UNIQUE (`monitor_uuid`, `notification_settings_uuid`),
+                FOREIGN KEY (`monitor_uuid`)
+                REFERENCES `monitor`(`uuid`)
+                ON UPDATE CASCADE
+            	ON DELETE CASCADE,
+                FOREIGN KEY (`notification_settings_uuid`)
+                REFERENCES `notification_settings`(`uuid`)
+            	ON UPDATE CASCADE
+            	ON DELETE CASCADE
+            );
+            """;
+
     private static final String COUNT_MONITORS = """
             SELECT COUNT(*) FROM monitor;
             """;
@@ -62,6 +82,9 @@ public class SQLMonitorRepository implements MonitorRepository {
             """;
     private static final String INSERT_HEARTBEAT = """
             INSERT INTO heartbeat (uuid, status, message, creationDate, monitor_uuid) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE uuid = uuid;
+            """;
+    private static final String INSERT_MONITOR_NOTIFICATIONS = """
+            INSERT INTO monitor_notifications (monitor_uuid, notification_settings_uuid) VALUES (?, ?) ON DUPLICATE KEY UPDATE monitor_uuid = monitor_uuid;
             """;
 
     private static final String SELECT_MONITOR = """
@@ -82,8 +105,10 @@ public class SQLMonitorRepository implements MonitorRepository {
     @Override
     public void createTablesIfNotExists() {
         try (Connection connection = this.storage.getDataSource().getConnection();
-             PreparedStatement monitorStatement = connection.prepareStatement(CREATE_MONITOR)) {
+             PreparedStatement monitorStatement = connection.prepareStatement(CREATE_MONITOR);
+             PreparedStatement monitorNotificationsStatement = connection.prepareStatement(CREATE_MONITOR_NOTIFICATIONS)) {
             monitorStatement.executeUpdate();
+            monitorNotificationsStatement.executeUpdate();
         } catch (SQLException exception) {
             LOGGER.error("An error occurred while creating tables", exception);
         }
@@ -108,7 +133,8 @@ public class SQLMonitorRepository implements MonitorRepository {
         try (Connection connection = this.storage.getDataSource().getConnection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement monitorStatement = connection.prepareStatement(INSERT_MONITOR);
-                 PreparedStatement heartbeatStatement = connection.prepareStatement(INSERT_HEARTBEAT)) {
+                 PreparedStatement heartbeatStatement = connection.prepareStatement(INSERT_HEARTBEAT);
+                 PreparedStatement notificationsStatement = connection.prepareStatement(INSERT_MONITOR_NOTIFICATIONS)) {
                 monitorStatement.setString(1, monitor.getUuid().toString());
                 monitorStatement.setString(2, monitor.getName());
                 monitorStatement.setString(3, monitor.getType().toString());
@@ -138,6 +164,13 @@ public class SQLMonitorRepository implements MonitorRepository {
                     heartbeatStatement.addBatch();
                 }
                 heartbeatStatement.executeBatch();
+
+                for (NotificationSettings notificationSettings : monitor.getNotificationSettings()) {
+                    notificationsStatement.setString(1, monitor.getUuid().toString());
+                    notificationsStatement.setString(2, notificationSettings.getUuid().toString());
+                    notificationsStatement.addBatch();
+                }
+                notificationsStatement.executeBatch();
 
                 connection.commit();
             } catch (SQLException exception) {
@@ -178,14 +211,17 @@ public class SQLMonitorRepository implements MonitorRepository {
                     String pingAddress = monitorResult.getString("pingAddress");
 
                     List<Heartbeat> heartbeats = this.heartbeatRepository.findByMonitorUuid(uuid);
+                    List<NotificationSettings> notificationSettings = this.notificationRepository.findByMonitorUuid(uuid);
 
                     if (type == MonitorType.HTTP) {
                         HttpMonitor httpMonitor = new HttpMonitor(uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodesList);
                         httpMonitor.setHeartbeats(heartbeats);
+                        httpMonitor.setNotificationSettings(notificationSettings);
                         return Optional.of(httpMonitor);
                     } else if (type == MonitorType.PING) {
                         PingMonitor pingMonitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, pingAddress);
                         pingMonitor.setHeartbeats(heartbeats);
+                        pingMonitor.setNotificationSettings(notificationSettings);
                         return Optional.of(pingMonitor);
                     }
                 }
@@ -207,6 +243,7 @@ public class SQLMonitorRepository implements MonitorRepository {
                     UUID uuid = UUID.fromString(resultSet.getString("uuid"));
 
                     List<Heartbeat> heartbeats = this.heartbeatRepository.findByMonitorUuid(uuid);
+                    List<NotificationSettings> notificationSettings = this.notificationRepository.findByMonitorUuid(uuid);
 
                     Monitor monitor = monitors.computeIfAbsent(uuid, mapper -> {
                         try {
@@ -241,6 +278,7 @@ public class SQLMonitorRepository implements MonitorRepository {
                     }
 
                     monitor.setHeartbeats(heartbeats);
+                    monitor.setNotificationSettings(notificationSettings);
                 }
             }
         } catch (SQLException exception) {

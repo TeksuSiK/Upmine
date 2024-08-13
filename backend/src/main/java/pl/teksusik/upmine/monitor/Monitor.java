@@ -1,6 +1,7 @@
 package pl.teksusik.upmine.monitor;
 
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.notification.NotificationSettings;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +18,7 @@ public abstract class Monitor {
     private Duration checkInterval;
 
     private List<Heartbeat> heartbeats = new ArrayList<>();
+    private List<NotificationSettings> notificationSettings = new ArrayList<>();
 
     public Monitor(UUID uuid) {
         this.uuid = uuid;
@@ -76,5 +78,13 @@ public abstract class Monitor {
 
     public void addHeartbeat(Heartbeat heartbeat) {
         this.heartbeats.add(heartbeat);
+    }
+
+    public List<NotificationSettings> getNotificationSettings() {
+        return notificationSettings;
+    }
+
+    public void setNotificationSettings(List<NotificationSettings> notificationSettings) {
+        this.notificationSettings = notificationSettings;
     }
 }
