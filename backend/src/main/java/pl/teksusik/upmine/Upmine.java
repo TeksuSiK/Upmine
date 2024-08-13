@@ -53,7 +53,8 @@ public class Upmine {
         this.monitorService = new MonitorService(this.monitorRepository, this.availabilityCheckerScheduler);
         this.monitorController = new MonitorController(this.monitorService);
 
-        this.availabilityCheckerScheduler.setMonitorService(monitorService);
+        this.availabilityCheckerScheduler.setMonitorService(this.monitorService);
+        this.availabilityCheckerScheduler.setNotificationService(this.notificationService);
         this.availabilityCheckerScheduler.startScheduler();
         this.availabilityCheckerScheduler.setupJobsForExistingMonitors();
 
