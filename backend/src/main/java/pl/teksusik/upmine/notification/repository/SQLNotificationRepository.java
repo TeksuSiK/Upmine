@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.NotificationType;
+import pl.teksusik.upmine.notification.discord.DiscordNotificationSettings;
 import pl.teksusik.upmine.storage.SQLStorage;
 
 import java.sql.Connection;
@@ -28,7 +29,8 @@ public class SQLNotificationRepository implements NotificationRepository {
             CREATE TABLE IF NOT EXISTS `notification_settings` (
                 `uuid` varchar(36) NOT NULL PRIMARY KEY,
                 `name` varchar(50) DEFAULT NULL,
-                `type` varchar(30) NOT NULL
+                `type` varchar(30) NOT NULL,
+                `discordWebhookUrl` varchar(255) DEFAULT NULL
             );
             """;
 
@@ -37,22 +39,22 @@ public class SQLNotificationRepository implements NotificationRepository {
             """;
 
     private static final String INSERT_NOTIFICATION_SETTINGS = """
-            INSERT INTO notification_settings (uuid, name, type)
-            VALUES (?, ?, ?)
+            INSERT INTO notification_settings (uuid, name, type, discordWebhookUrl)
+            VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY
-            UPDATE name = VALUES(name), type = VALUES(type);
+            UPDATE name = VALUES(name), type = VALUES(type), discordWebhookUrl = VALUES(discordWebhookUrl);
             """;
 
     private static final String SELECT_NOTIFICATION_SETTINGS = """
-            SELECT ns.uuid, ns.name, ns.type FROM notification_settings AS ns WHERE ns.uuid = ?;
+            SELECT ns.uuid, ns.name, ns.type, ns.discordWebhookUrl FROM notification_settings AS ns WHERE ns.uuid = ?;
             """;
 
     private static final String SELECT_ALL_NOTIFICATION_SETTINGS = """
-            SELECT ns.uuid, ns.name, ns.type FROM notification_settings AS ns;
+            SELECT ns.uuid, ns.name, ns.type, ns.discordWebhookUrl FROM notification_settings AS ns;
             """;
 
     private static final String SELECT_NOTIFICATION_SETTINGS_BY_MONITOR = """
-            SELECT ns.uuid, ns.name, ns.type
+            SELECT ns.uuid, ns.name, ns.type, ns.discordWebhookUrl
             FROM notification_settings AS ns
             JOIN monitor_notifications AS mn ON mn.notification_settings_uuid = ns.uuid
             WHERE mn.monitor_uuid = ?;
@@ -93,6 +95,10 @@ public class SQLNotificationRepository implements NotificationRepository {
             statement.setString(1, settings.getUuid().toString());
             statement.setString(2, settings.getName());
             statement.setString(3, settings.getType().toString());
+
+            if (settings instanceof DiscordNotificationSettings discordNotificationSettings) {
+                statement.setString(4, discordNotificationSettings.getDiscordWebhookUrl());
+            }
             statement.executeUpdate();
         } catch (SQLException exception) {
             LOGGER.error("An error occurred while saving notification settings", exception);
@@ -110,6 +116,13 @@ public class SQLNotificationRepository implements NotificationRepository {
                 if (resultSet.next()) {
                     String name = resultSet.getString("name");
                     NotificationType type = NotificationType.valueOf(resultSet.getString("type"));
+
+                    String discordWebhookUrl = resultSet.getString("discordWebhookUrl");
+
+                    if (type == NotificationType.DISCORD) {
+                        DiscordNotificationSettings discordNotificationSettings = new DiscordNotificationSettings(uuid, name, type, discordWebhookUrl);
+                        return Optional.of(discordNotificationSettings);
+                    }
                 }
             }
         } catch (SQLException exception) {
@@ -128,6 +141,13 @@ public class SQLNotificationRepository implements NotificationRepository {
                 UUID uuid = UUID.fromString(resultSet.getString("uuid"));
                 String name = resultSet.getString("name");
                 NotificationType type = NotificationType.valueOf(resultSet.getString("type"));
+
+                String discordWebhookUrl = resultSet.getString("discordWebhookUrl");
+
+                if (type == NotificationType.DISCORD) {
+                    DiscordNotificationSettings discordNotificationSettings = new DiscordNotificationSettings(uuid, name, type, discordWebhookUrl);
+                    notificationSettings.add(discordNotificationSettings);
+                }
             }
         } catch (SQLException exception) {
             LOGGER.error("An error occurred while finding notification settings", exception);
@@ -147,6 +167,13 @@ public class SQLNotificationRepository implements NotificationRepository {
                     UUID uuid = UUID.fromString(resultSet.getString("uuid"));
                     String name = resultSet.getString("name");
                     NotificationType type = NotificationType.valueOf(resultSet.getString("type"));
+
+                    String discordWebhookUrl = resultSet.getString("discordWebhookUrl");
+
+                    if (type == NotificationType.DISCORD) {
+                        DiscordNotificationSettings discordNotificationSettings = new DiscordNotificationSettings(uuid, name, type, discordWebhookUrl);
+                        notificationSettings.add(discordNotificationSettings);
+                    }
                 }
             }
         } catch (SQLException exception) {
