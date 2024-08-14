@@ -3,6 +3,7 @@ package pl.teksusik.upmine.monitor.repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.heartbeat.repository.HeartbeatRepository;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
@@ -213,15 +214,23 @@ public class SQLMonitorRepository implements MonitorRepository {
                     List<Heartbeat> heartbeats = this.heartbeatRepository.findByMonitorUuid(uuid);
                     List<NotificationSettings> notificationSettings = this.notificationRepository.findByMonitorUuid(uuid);
 
+                    Heartbeat latestHeartbeat = heartbeats.getFirst();
+                    Status status = Status.NOT_AVAILABLE;
+                    if (latestHeartbeat != null) {
+                        status = latestHeartbeat.getStatus();
+                    }
+
                     if (type == MonitorType.HTTP) {
                         HttpMonitor httpMonitor = new HttpMonitor(uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodesList);
                         httpMonitor.setHeartbeats(heartbeats);
                         httpMonitor.setNotificationSettings(notificationSettings);
+                        httpMonitor.setCurrentStatus(status);
                         return Optional.of(httpMonitor);
                     } else if (type == MonitorType.PING) {
                         PingMonitor pingMonitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, pingAddress);
                         pingMonitor.setHeartbeats(heartbeats);
                         pingMonitor.setNotificationSettings(notificationSettings);
+                        pingMonitor.setCurrentStatus(status);
                         return Optional.of(pingMonitor);
                     }
                 }
@@ -277,8 +286,15 @@ public class SQLMonitorRepository implements MonitorRepository {
                         continue;
                     }
 
+                    Heartbeat latestHeartbeat = heartbeats.getFirst();
+                    Status status = Status.NOT_AVAILABLE;
+                    if (latestHeartbeat != null) {
+                        status = latestHeartbeat.getStatus();
+                    }
+
                     monitor.setHeartbeats(heartbeats);
                     monitor.setNotificationSettings(notificationSettings);
+                    monitor.setCurrentStatus(status);
                 }
             }
         } catch (SQLException exception) {

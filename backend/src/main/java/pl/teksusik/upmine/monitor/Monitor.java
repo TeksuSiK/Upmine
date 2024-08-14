@@ -1,6 +1,8 @@
 package pl.teksusik.upmine.monitor;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.notification.NotificationSettings;
 
 import java.time.Duration;
@@ -19,6 +21,8 @@ public abstract class Monitor {
 
     private List<Heartbeat> heartbeats = new ArrayList<>();
     private List<NotificationSettings> notificationSettings = new ArrayList<>();
+
+    private Status currentStatus;
 
     public Monitor(UUID uuid) {
         this.uuid = uuid;
@@ -86,5 +90,13 @@ public abstract class Monitor {
 
     public void setNotificationSettings(List<NotificationSettings> notificationSettings) {
         this.notificationSettings = notificationSettings;
+    }
+
+    public Status getCurrentStatus() {
+        return currentStatus;
+    }
+
+    public void setCurrentStatus(Status currentStatus) {
+        this.currentStatus = currentStatus;
     }
 }

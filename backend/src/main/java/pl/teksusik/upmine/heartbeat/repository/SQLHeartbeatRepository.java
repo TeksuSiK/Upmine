@@ -59,7 +59,8 @@ public class SQLHeartbeatRepository implements HeartbeatRepository {
     private static final String SELECT_HEARTBEATS_BY_MONITOR = """
             SELECT h.uuid, h.status, h.message, h.creationDate
             FROM heartbeat AS h
-            WHERE h.monitor_uuid = ?;
+            WHERE h.monitor_uuid = ?
+            ORDER BY h.creationDate DESC;
             """;
 
     private static final String DELETE_HEARTBEAT = """

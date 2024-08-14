@@ -4,6 +4,7 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.service.MonitorService;
 import pl.teksusik.upmine.notification.service.NotificationService;
@@ -26,6 +27,10 @@ public class AvailabilityCheckerJob implements Job {
                 .orElseThrow(() -> new JobExecutionException("An error occurred while fetching monitor"));
 
         Heartbeat heartbeat = this.monitorService.checkAvailability(monitor);
-        this.notificationService.sendNotification(monitor, heartbeat);
+        Status newStatus = heartbeat.getStatus();
+        if (!newStatus.equals(monitor.getCurrentStatus())) {
+            monitor.setCurrentStatus(newStatus);
+            this.notificationService.sendNotification(monitor, heartbeat);
+        }
     }
 }
