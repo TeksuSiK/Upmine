@@ -1,12 +1,13 @@
 package pl.teksusik.upmine.monitor.service;
 
 import pl.teksusik.upmine.availability.AvailabilityChecker;
-import pl.teksusik.upmine.availability.http.HttpAvailabilityChecker;
-import pl.teksusik.upmine.availability.ping.PingAvailabilityChecker;
 import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
+import pl.teksusik.upmine.docker.DockerHost;
+import pl.teksusik.upmine.docker.service.DockerHostService;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
+import pl.teksusik.upmine.monitor.docker.DockerMonitor;
 import pl.teksusik.upmine.monitor.dto.MonitorDto;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.ping.PingMonitor;
@@ -23,19 +24,22 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class MonitorService {
-    private final Map<MonitorType, AvailabilityChecker> availabilityCheckers = new HashMap<>(Map.of(
-            MonitorType.HTTP, new HttpAvailabilityChecker(),
-            MonitorType.PING, new PingAvailabilityChecker()
-    ));
+    private final Map<MonitorType, AvailabilityChecker> availabilityCheckers = new HashMap<>();
 
+    private final DockerHostService dockerHostService;
     private final NotificationService notificationService;
     private final MonitorRepository monitorRepository;
     private final AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
-    public MonitorService(NotificationService notificationService, MonitorRepository monitorRepository, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+    public MonitorService(DockerHostService dockerHostService, NotificationService notificationService, MonitorRepository monitorRepository, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+        this.dockerHostService = dockerHostService;
         this.notificationService = notificationService;
         this.monitorRepository = monitorRepository;
         this.availabilityCheckerScheduler = availabilityCheckerScheduler;
+    }
+
+    public void registerAvailabilityChecker(MonitorType monitorType, AvailabilityChecker availabilityChecker) {
+        this.availabilityCheckers.put(monitorType, availabilityChecker);
     }
 
     public long count() {
@@ -77,6 +81,13 @@ public class MonitorService {
             String address = monitorDto.getPingAddress();
 
             monitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, address);
+        } else if (type == MonitorType.DOCKER) {
+            UUID dockerHostUuid = UUID.fromString(monitorDto.getDockerHost());
+            DockerHost dockerHost = this.dockerHostService.findByUuid(dockerHostUuid)
+                    .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
+            String dockerContainerId = monitorDto.getDockerContainerId();
+
+            monitor = new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost, dockerContainerId);
         } else {
             return Optional.empty();
         }
@@ -98,6 +109,8 @@ public class MonitorService {
         String newUrl = monitorDto.getHttpUrl();
         List<Integer> newAcceptedCodes = monitorDto.getHttpAcceptedCodes();
         String newAddress = monitorDto.getPingAddress();
+        String newDockerHost = monitorDto.getDockerHost();
+        String newDockerContainerId = monitorDto.getDockerContainerId();
         List<String> newNotificationSettings = monitorDto.getNotificationSettings();
 
         Monitor monitor = monitorOptional.get();
@@ -139,6 +152,19 @@ public class MonitorService {
         if (monitor.getType() == MonitorType.PING && monitor instanceof PingMonitor pingMonitor) {
             if (newAddress != null && !newAddress.equals(pingMonitor.getPingAddress())) {
                 pingMonitor.setPingAddress(newAddress);
+            }
+        }
+
+        if (monitor.getType() == MonitorType.DOCKER && monitor instanceof DockerMonitor dockerMonitor) {
+            if (newDockerHost != null && !newDockerHost.equals(dockerMonitor.getDockerHost().getUuid().toString())) {
+                UUID dockerHostUuid = UUID.fromString(newDockerHost);
+                DockerHost dockerHost = this.dockerHostService.findByUuid(dockerHostUuid)
+                        .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
+                dockerMonitor.setDockerHost(dockerHost);
+            }
+
+            if (newDockerContainerId != null && !newDockerContainerId.equals(dockerMonitor.getDockerContainerId())) {
+                dockerMonitor.setDockerContainerId(newDockerContainerId);
             }
         }
 
