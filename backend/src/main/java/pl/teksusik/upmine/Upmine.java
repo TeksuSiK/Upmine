@@ -73,7 +73,6 @@ public class Upmine {
         this.dockerHostController = new DockerHostController(this.dockerHostService);
 
         this.heartbeatRepository = new SQLHeartbeatRepository(this.storage);
-        this.heartbeatRepository.createTablesIfNotExists();
 
         this.notificationRepository = new SQLNotificationRepository(this.storage);
         this.notificationRepository.createTablesIfNotExists();
@@ -83,6 +82,7 @@ public class Upmine {
 
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.dockerHostRepository, this.heartbeatRepository, this.notificationRepository);
         this.monitorRepository.createTablesIfNotExists();
+        this.heartbeatRepository.createTablesIfNotExists();
         this.monitorService = new MonitorService(this.monitorRepository, this.dockerHostService, this.notificationService, this.availabilityCheckerScheduler);
         this.monitorService.registerAvailabilityChecker(MonitorType.HTTP, new HttpAvailabilityChecker());
         this.monitorService.registerAvailabilityChecker(MonitorType.PING, new PingAvailabilityChecker());
