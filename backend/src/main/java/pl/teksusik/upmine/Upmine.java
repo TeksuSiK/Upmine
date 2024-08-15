@@ -25,6 +25,9 @@ import pl.teksusik.upmine.notification.discord.DiscordNotificationSender;
 import pl.teksusik.upmine.notification.repository.NotificationRepository;
 import pl.teksusik.upmine.notification.repository.SQLNotificationRepository;
 import pl.teksusik.upmine.notification.service.NotificationService;
+import pl.teksusik.upmine.push.PushAvailabilityChecker;
+import pl.teksusik.upmine.push.controller.PushController;
+import pl.teksusik.upmine.push.service.PushService;
 import pl.teksusik.upmine.storage.SQLStorage;
 import pl.teksusik.upmine.web.UpmineWebServer;
 
@@ -48,6 +51,9 @@ public class Upmine {
     private MonitorRepository monitorRepository;
     private MonitorService monitorService;
     private MonitorController monitorController;
+
+    private PushService pushService;
+    private PushController pushController;
 
     private AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
@@ -87,7 +93,11 @@ public class Upmine {
         this.monitorService.registerAvailabilityChecker(MonitorType.HTTP, new HttpAvailabilityChecker());
         this.monitorService.registerAvailabilityChecker(MonitorType.PING, new PingAvailabilityChecker());
         this.monitorService.registerAvailabilityChecker(MonitorType.DOCKER, new DockerAvailabilityChecker(this.dockerHostService));
+        this.monitorService.registerAvailabilityChecker(MonitorType.PUSH, new PushAvailabilityChecker());
         this.monitorController = new MonitorController(this.monitorService);
+
+        this.pushService = new PushService(this.monitorService);
+        this.pushController = new PushController(this.pushService);
 
         this.availabilityCheckerScheduler.setMonitorService(this.monitorService);
         this.availabilityCheckerScheduler.setNotificationService(this.notificationService);
@@ -111,6 +121,7 @@ public class Upmine {
                 .get("/api/dockerHost/{uuid}", this.dockerHostController::getByUuid)
                 .post("/api/dockerHost", this.dockerHostController::create)
                 .delete("/api/dockerHost/{uuid}", this.dockerHostController::deleteByUuid)
-                .put("/api/dockerHost/{uuid}", this.dockerHostController::update);
+                .put("/api/dockerHost/{uuid}", this.dockerHostController::update)
+                .get("/api/push/{secret}", this.pushController::acceptPush);
     }
 }

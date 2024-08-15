@@ -1,5 +1,6 @@
 package pl.teksusik.upmine.monitor.service;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import pl.teksusik.upmine.availability.AvailabilityChecker;
 import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
 import pl.teksusik.upmine.docker.host.DockerHost;
@@ -10,10 +11,11 @@ import pl.teksusik.upmine.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
 import pl.teksusik.upmine.monitor.dto.MonitorDto;
+import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.service.NotificationService;
 import pl.teksusik.upmine.ping.PingMonitor;
-import pl.teksusik.upmine.storage.Repository;
+import pl.teksusik.upmine.push.PushMonitor;
 import pl.teksusik.upmine.web.CrudService;
 
 import java.time.Duration;
@@ -27,12 +29,14 @@ import java.util.UUID;
 public class MonitorService extends CrudService<Monitor, MonitorDto> {
     private final Map<MonitorType, AvailabilityChecker> availabilityCheckers = new HashMap<>();
 
+    private final MonitorRepository monitorRepository;
     private final DockerHostService dockerHostService;
     private final NotificationService notificationService;
     private final AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
-    public MonitorService(Repository<Monitor> repository, DockerHostService dockerHostService, NotificationService notificationService, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
-        super(repository);
+    public MonitorService(MonitorRepository monitorRepository, DockerHostService dockerHostService, NotificationService notificationService, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+        super(monitorRepository);
+        this.monitorRepository = monitorRepository;
         this.dockerHostService = dockerHostService;
         this.notificationService = notificationService;
         this.availabilityCheckerScheduler = availabilityCheckerScheduler;
@@ -42,6 +46,10 @@ public class MonitorService extends CrudService<Monitor, MonitorDto> {
     public boolean deleteByUuid(UUID uuid) {
         this.availabilityCheckerScheduler.deleteJob(uuid);
         return super.deleteByUuid(uuid);
+    }
+
+    public Optional<PushMonitor> findByPushSecret(String pushSecret) {
+        return this.monitorRepository.findByPushSecret(pushSecret);
     }
 
     @Override
@@ -72,6 +80,10 @@ public class MonitorService extends CrudService<Monitor, MonitorDto> {
             String dockerContainerId = monitorDto.getDockerContainerId();
 
             monitor = new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost.get(), dockerContainerId);
+        } else if (type == MonitorType.PUSH) {
+            String pushSecret = RandomStringUtils.random(20, true, true);
+
+            monitor = new PushMonitor(uuid, name, type, creationDate, checkInterval, pushSecret);
         } else {
             return Optional.empty();
         }
