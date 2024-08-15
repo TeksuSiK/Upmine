@@ -1,5 +1,7 @@
 package pl.teksusik.upmine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.teksusik.upmine.availability.docker.DockerAvailabilityChecker;
 import pl.teksusik.upmine.availability.http.HttpAvailabilityChecker;
 import pl.teksusik.upmine.availability.ping.PingAvailabilityChecker;
@@ -27,6 +29,8 @@ import pl.teksusik.upmine.storage.SQLStorage;
 import pl.teksusik.upmine.web.UpmineWebServer;
 
 public class Upmine {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Upmine.class);
+
     private ApplicationConfiguration configuration;
 
     private SQLStorage storage;
@@ -51,6 +55,11 @@ public class Upmine {
 
     public void launch() {
         this.configuration = ConfigurationFactory.createConfiguration(ApplicationConfiguration.class);
+        if (this.configuration == null) {
+            LOGGER.error("An error occurred while loading configuration");
+            System.exit(1);
+            return;
+        }
 
         ApplicationConfiguration.StorageConfiguration storageConfiguration = this.configuration.getStorageConfiguration();
         this.storage = new SQLStorage(storageConfiguration.getJdbcUrl());
