@@ -9,6 +9,8 @@ public class MonitorDto {
     private String httpUrl;
     private List<Integer> httpAcceptedCodes;
     private String pingAddress;
+    private String dockerHost;
+    private String dockerContainerId;
     private List<String> notificationSettings;
 
     public MonitorDto() {
@@ -36,6 +38,14 @@ public class MonitorDto {
 
     public String getPingAddress() {
         return pingAddress;
+    }
+
+    public String getDockerHost() {
+        return dockerHost;
+    }
+
+    public String getDockerContainerId() {
+        return dockerContainerId;
     }
 
     public List<String> getNotificationSettings() {

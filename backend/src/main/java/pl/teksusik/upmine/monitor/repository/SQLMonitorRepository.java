@@ -2,11 +2,14 @@ package pl.teksusik.upmine.monitor.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.teksusik.upmine.docker.DockerHost;
+import pl.teksusik.upmine.docker.repository.DockerHostRepository;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.heartbeat.repository.HeartbeatRepository;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
+import pl.teksusik.upmine.monitor.docker.DockerMonitor;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.ping.PingMonitor;
 import pl.teksusik.upmine.notification.NotificationSettings;
@@ -33,11 +36,13 @@ public class SQLMonitorRepository implements MonitorRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(SQLMonitorRepository.class);
 
     private final SQLStorage storage;
+    private final DockerHostRepository dockerHostRepository;
     private final HeartbeatRepository heartbeatRepository;
     private final NotificationRepository notificationRepository;
 
-    public SQLMonitorRepository(SQLStorage storage, HeartbeatRepository heartbeatRepository, NotificationRepository notificationRepository) {
+    public SQLMonitorRepository(SQLStorage storage, DockerHostRepository dockerHostRepository, HeartbeatRepository heartbeatRepository, NotificationRepository notificationRepository) {
         this.storage = storage;
+        this.dockerHostRepository = dockerHostRepository;
         this.heartbeatRepository = heartbeatRepository;
         this.notificationRepository = notificationRepository;
     }
@@ -51,7 +56,13 @@ public class SQLMonitorRepository implements MonitorRepository {
               `checkInterval` bigint DEFAULT NULL,
               `httpUrl` varchar(50) DEFAULT NULL,
               `httpAcceptedCodes` varchar(255) DEFAULT NULL,
-              `pingAddress` varchar(50) DEFAULT NULL
+              `pingAddress` varchar(50) DEFAULT NULL,
+              `dockerHost` varchar(36) DEFAULT NULL,
+              `dockerContainerId` varchar(50) DEFAULT NULL,
+              FOREIGN KEY (`dockerHost`)
+              REFERENCES `docker_host`(`uuid`)
+              ON UPDATE CASCADE
+              ON DELETE CASCADE
             );
             """;
 
@@ -76,10 +87,10 @@ public class SQLMonitorRepository implements MonitorRepository {
             """;
 
     private static final String INSERT_MONITOR = """
-            INSERT INTO monitor (uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodes, pingAddress)
-            VALUES (?, ? ,?, ?, ?, ?, ?, ?)
+            INSERT INTO monitor (uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodes, pingAddress, dockerHost, dockerContainerId)
+            VALUES (?, ? ,?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY
-            UPDATE name = VALUES(name), type = VALUES(type), creationDate = VALUES(creationDate), checkInterval = VALUES(checkInterval), httpUrl = VALUES(httpUrl), httpAcceptedCodes = VALUES(httpAcceptedCodes), pingAddress = VALUES(pingAddress);
+            UPDATE name = VALUES(name), type = VALUES(type), creationDate = VALUES(creationDate), checkInterval = VALUES(checkInterval), httpUrl = VALUES(httpUrl), httpAcceptedCodes = VALUES(httpAcceptedCodes), pingAddress = VALUES(pingAddress), dockerHost = VALUES(dockerHost), dockerContainerId = VALUES(dockerContainerId);
             """;
     private static final String INSERT_HEARTBEAT = """
             INSERT INTO heartbeat (uuid, status, message, creationDate, monitor_uuid) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE uuid = uuid;
@@ -89,13 +100,13 @@ public class SQLMonitorRepository implements MonitorRepository {
             """;
 
     private static final String SELECT_MONITOR = """
-            SELECT m.uuid, m.name, m.type, m.creationDate, m.checkInterval, m.httpUrl, m.httpAcceptedCodes, m.pingAddress
+            SELECT m.uuid, m.name, m.type, m.creationDate, m.checkInterval, m.httpUrl, m.httpAcceptedCodes, m.pingAddress, m.dockerHost, m.dockerContainerId
             FROM monitor AS m
             WHERE m.uuid = ?;
             """;
 
     private static final String SELECT_ALL_MONITORS = """
-            SELECT m.uuid, m.name, m.type, m.creationDate, m.checkInterval, m.httpUrl, m.httpAcceptedCodes, m.pingAddress
+            SELECT m.uuid, m.name, m.type, m.creationDate, m.checkInterval, m.httpUrl, m.httpAcceptedCodes, m.pingAddress, m.dockerHost, m.dockerContainerId
             FROM monitor AS m;
             """;
 
@@ -143,16 +154,22 @@ public class SQLMonitorRepository implements MonitorRepository {
 
                 monitorStatement.setLong(5, monitor.getCheckInterval().toSeconds());
 
+                monitorStatement.setNull(6, Types.VARCHAR);
+                monitorStatement.setNull(7, Types.VARCHAR);
+                monitorStatement.setNull(8, Types.VARCHAR);
+                monitorStatement.setNull(9, Types.VARCHAR);
+                monitorStatement.setNull(10, Types.VARCHAR);
+
                 if (monitor instanceof HttpMonitor httpMonitor) {
                     monitorStatement.setString(6, httpMonitor.getHttpUrl());
                     monitorStatement.setString(7, httpMonitor.getHttpAcceptedCodes().stream()
                             .map(String::valueOf)
                             .collect(Collectors.joining(";")));
-                    monitorStatement.setNull(8, Types.VARCHAR);
                 } else if (monitor instanceof PingMonitor pingMonitor) {
-                    monitorStatement.setNull(6, Types.VARCHAR);
-                    monitorStatement.setNull(7, Types.VARCHAR);
                     monitorStatement.setString(8, pingMonitor.getPingAddress());
+                } else if (monitor instanceof DockerMonitor dockerMonitor) {
+                    monitorStatement.setString(9, dockerMonitor.getDockerHost().getUuid().toString());
+                    monitorStatement.setString(10, dockerMonitor.getDockerContainerId());
                 }
                 monitorStatement.executeUpdate();
 
@@ -214,25 +231,32 @@ public class SQLMonitorRepository implements MonitorRepository {
                     List<Heartbeat> heartbeats = this.heartbeatRepository.findByMonitorUuid(uuid);
                     List<NotificationSettings> notificationSettings = this.notificationRepository.findByMonitorUuid(uuid);
 
-                    Heartbeat latestHeartbeat = heartbeats.getFirst();
                     Status status = Status.NOT_AVAILABLE;
-                    if (latestHeartbeat != null) {
-                        status = latestHeartbeat.getStatus();
+                    if (!heartbeats.isEmpty()) {
+                        Heartbeat latestHeartbeat = heartbeats.getFirst();
+                        if (latestHeartbeat != null) {
+                            status = latestHeartbeat.getStatus();
+                        }
                     }
 
+                    Monitor monitor = null;
                     if (type == MonitorType.HTTP) {
-                        HttpMonitor httpMonitor = new HttpMonitor(uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodesList);
-                        httpMonitor.setHeartbeats(heartbeats);
-                        httpMonitor.setNotificationSettings(notificationSettings);
-                        httpMonitor.setCurrentStatus(status);
-                        return Optional.of(httpMonitor);
+                        monitor = new HttpMonitor(uuid, name, type, creationDate, checkInterval, httpUrl, httpAcceptedCodesList);
                     } else if (type == MonitorType.PING) {
-                        PingMonitor pingMonitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, pingAddress);
-                        pingMonitor.setHeartbeats(heartbeats);
-                        pingMonitor.setNotificationSettings(notificationSettings);
-                        pingMonitor.setCurrentStatus(status);
-                        return Optional.of(pingMonitor);
+                        monitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, pingAddress);
+                    } else if (type == MonitorType.DOCKER) {
+                        UUID dockerHostUuid = UUID.fromString(monitorResult.getString("dockerHost"));
+                        DockerHost dockerHost = this.dockerHostRepository.findByUuid(dockerHostUuid)
+                                .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
+                        String dockerContainerId = monitorResult.getString("dockerContainerId");
+                        
+                        monitor = new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost, dockerContainerId);
                     }
+
+                    monitor.setHeartbeats(heartbeats);
+                    monitor.setNotificationSettings(notificationSettings);
+                    monitor.setCurrentStatus(status);
+                    return Optional.of(monitor);
                 }
             }
         } catch (SQLException exception) {
@@ -273,6 +297,13 @@ public class SQLMonitorRepository implements MonitorRepository {
                                 String pingAddress = resultSet.getString("pingAddress");
 
                                 return new PingMonitor(uuid, name, type, creationDate, checkInterval, pingAddress);
+                            } else if (type == MonitorType.DOCKER) {
+                                UUID dockerHostUuid = UUID.fromString(resultSet.getString("dockerHost"));
+                                DockerHost dockerHost = this.dockerHostRepository.findByUuid(dockerHostUuid)
+                                        .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
+                                String dockerContainerId = resultSet.getString("dockerContainerId");
+
+                                return new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost, dockerContainerId);
                             }
 
                         } catch (SQLException exception) {
@@ -286,10 +317,13 @@ public class SQLMonitorRepository implements MonitorRepository {
                         continue;
                     }
 
-                    Heartbeat latestHeartbeat = heartbeats.getFirst();
+
                     Status status = Status.NOT_AVAILABLE;
-                    if (latestHeartbeat != null) {
-                        status = latestHeartbeat.getStatus();
+                    if (!heartbeats.isEmpty()) {
+                        Heartbeat latestHeartbeat = heartbeats.getFirst();
+                        if (latestHeartbeat != null) {
+                            status = latestHeartbeat.getStatus();
+                        }
                     }
 
                     monitor.setHeartbeats(heartbeats);

@@ -1,6 +1,5 @@
 package pl.teksusik.upmine.monitor;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.notification.NotificationSettings;
