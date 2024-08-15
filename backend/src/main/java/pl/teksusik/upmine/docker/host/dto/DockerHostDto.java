@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.docker.dto;
+package pl.teksusik.upmine.docker.host.dto;
 
 public class DockerHostDto {
     private String name;

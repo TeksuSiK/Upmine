@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.docker;
+package pl.teksusik.upmine.docker.host;
 
 import java.util.UUID;
 

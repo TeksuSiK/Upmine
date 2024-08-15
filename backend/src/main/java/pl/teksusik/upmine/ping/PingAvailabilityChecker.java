@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.availability.ping;
+package pl.teksusik.upmine.ping;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,7 +6,6 @@ import pl.teksusik.upmine.availability.AvailabilityChecker;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.heartbeat.HeartbeatFactory;
 import pl.teksusik.upmine.monitor.Monitor;
-import pl.teksusik.upmine.monitor.ping.PingMonitor;
 
 import java.io.IOException;
 import java.net.InetAddress;

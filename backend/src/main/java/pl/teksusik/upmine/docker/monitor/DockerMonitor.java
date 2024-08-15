@@ -1,6 +1,6 @@
-package pl.teksusik.upmine.monitor.docker;
+package pl.teksusik.upmine.docker.monitor;
 
-import pl.teksusik.upmine.docker.DockerHost;
+import pl.teksusik.upmine.docker.host.DockerHost;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
 

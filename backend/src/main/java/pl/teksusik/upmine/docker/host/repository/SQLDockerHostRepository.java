@@ -1,8 +1,8 @@
-package pl.teksusik.upmine.docker.repository;
+package pl.teksusik.upmine.docker.host.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.teksusik.upmine.docker.DockerHost;
+import pl.teksusik.upmine.docker.host.DockerHost;
 import pl.teksusik.upmine.storage.SQLStorage;
 
 import java.sql.Connection;

@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.docker.service;
+package pl.teksusik.upmine.docker.host.service;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -6,14 +6,12 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
-import pl.teksusik.upmine.docker.DockerHost;
-import pl.teksusik.upmine.docker.dto.DockerHostDto;
-import pl.teksusik.upmine.docker.repository.DockerHostRepository;
+import pl.teksusik.upmine.docker.host.DockerHost;
+import pl.teksusik.upmine.docker.host.dto.DockerHostDto;
 import pl.teksusik.upmine.storage.Repository;
 import pl.teksusik.upmine.web.CrudService;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;

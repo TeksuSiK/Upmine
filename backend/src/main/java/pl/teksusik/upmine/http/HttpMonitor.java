@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.monitor.http;
+package pl.teksusik.upmine.http;
 
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;

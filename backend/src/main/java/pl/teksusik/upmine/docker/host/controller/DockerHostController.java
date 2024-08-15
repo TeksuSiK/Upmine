@@ -1,7 +1,7 @@
-package pl.teksusik.upmine.docker.controller;
+package pl.teksusik.upmine.docker.host.controller;
 
-import pl.teksusik.upmine.docker.DockerHost;
-import pl.teksusik.upmine.docker.dto.DockerHostDto;
+import pl.teksusik.upmine.docker.host.DockerHost;
+import pl.teksusik.upmine.docker.host.dto.DockerHostDto;
 import pl.teksusik.upmine.web.CrudController;
 import pl.teksusik.upmine.web.CrudService;
 
