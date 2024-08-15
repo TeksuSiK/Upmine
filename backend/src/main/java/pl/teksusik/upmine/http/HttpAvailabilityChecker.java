@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.availability.http;
+package pl.teksusik.upmine.http;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,7 +7,6 @@ import pl.teksusik.upmine.heartbeat.Heartbeat;
 import pl.teksusik.upmine.heartbeat.HeartbeatFactory;
 import pl.teksusik.upmine.heartbeat.Status;
 import pl.teksusik.upmine.monitor.Monitor;
-import pl.teksusik.upmine.monitor.http.HttpMonitor;
 
 import java.io.IOException;
 import java.net.URI;

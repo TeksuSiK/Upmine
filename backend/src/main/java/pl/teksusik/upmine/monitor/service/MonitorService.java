@@ -2,17 +2,17 @@ package pl.teksusik.upmine.monitor.service;
 
 import pl.teksusik.upmine.availability.AvailabilityChecker;
 import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
-import pl.teksusik.upmine.docker.DockerHost;
-import pl.teksusik.upmine.docker.service.DockerHostService;
+import pl.teksusik.upmine.docker.host.DockerHost;
+import pl.teksusik.upmine.docker.host.service.DockerHostService;
+import pl.teksusik.upmine.docker.monitor.DockerMonitor;
 import pl.teksusik.upmine.heartbeat.Heartbeat;
+import pl.teksusik.upmine.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
-import pl.teksusik.upmine.monitor.docker.DockerMonitor;
 import pl.teksusik.upmine.monitor.dto.MonitorDto;
-import pl.teksusik.upmine.monitor.http.HttpMonitor;
-import pl.teksusik.upmine.monitor.ping.PingMonitor;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.service.NotificationService;
+import pl.teksusik.upmine.ping.PingMonitor;
 import pl.teksusik.upmine.storage.Repository;
 import pl.teksusik.upmine.web.CrudService;
 
@@ -65,11 +65,13 @@ public class MonitorService extends CrudService<Monitor, MonitorDto> {
             monitor = new PingMonitor(uuid, name, type, creationDate, checkInterval, address);
         } else if (type == MonitorType.DOCKER) {
             UUID dockerHostUuid = UUID.fromString(monitorDto.getDockerHost());
-            DockerHost dockerHost = this.dockerHostService.findByUuid(dockerHostUuid)
-                    .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
+            Optional<DockerHost> dockerHost = this.dockerHostService.findByUuid(dockerHostUuid);
+            if (dockerHost.isEmpty()) {
+                return Optional.empty();
+            }
             String dockerContainerId = monitorDto.getDockerContainerId();
 
-            monitor = new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost, dockerContainerId);
+            monitor = new DockerMonitor(uuid, name, type, creationDate, checkInterval, dockerHost.get(), dockerContainerId);
         } else {
             return Optional.empty();
         }
@@ -141,9 +143,11 @@ public class MonitorService extends CrudService<Monitor, MonitorDto> {
         if (monitor.getType() == MonitorType.DOCKER && monitor instanceof DockerMonitor dockerMonitor) {
             if (newDockerHost != null && !newDockerHost.equals(dockerMonitor.getDockerHost().getUuid().toString())) {
                 UUID dockerHostUuid = UUID.fromString(newDockerHost);
-                DockerHost dockerHost = this.dockerHostService.findByUuid(dockerHostUuid)
-                        .orElseThrow(() -> new RuntimeException("Specified docker host not found"));
-                dockerMonitor.setDockerHost(dockerHost);
+                Optional<DockerHost> dockerHost = this.dockerHostService.findByUuid(dockerHostUuid);
+                if (dockerHost.isEmpty()) {
+                    return Optional.empty();
+                }
+                dockerMonitor.setDockerHost(dockerHost.get());
             }
 
             if (newDockerContainerId != null && !newDockerContainerId.equals(dockerMonitor.getDockerContainerId())) {

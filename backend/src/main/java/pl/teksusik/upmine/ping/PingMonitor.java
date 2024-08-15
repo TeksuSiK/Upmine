@@ -1,4 +1,4 @@
-package pl.teksusik.upmine.monitor.ping;
+package pl.teksusik.upmine.ping;
 
 import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.monitor.MonitorType;
