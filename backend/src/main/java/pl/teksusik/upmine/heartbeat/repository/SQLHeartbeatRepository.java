@@ -41,7 +41,7 @@ public class SQLHeartbeatRepository implements HeartbeatRepository {
             """;
 
     private static final String COUNT_HEARTBEATS = """
-            SELECT COUNT(*) FROM monitor;
+            SELECT COUNT(*) FROM heartbeat;
             """;
 
     private static final String SELECT_HEARTBEAT = """
@@ -64,7 +64,7 @@ public class SQLHeartbeatRepository implements HeartbeatRepository {
             """;
 
     private static final String DELETE_HEARTBEAT = """
-            DELETE FROM monitor WHERE uuid = ?
+            DELETE FROM heartbeat WHERE uuid = ?
             """;
 
     @Override
