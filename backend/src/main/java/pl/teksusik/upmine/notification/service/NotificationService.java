@@ -5,64 +5,25 @@ import pl.teksusik.upmine.monitor.Monitor;
 import pl.teksusik.upmine.notification.NotificationSender;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.NotificationType;
-import pl.teksusik.upmine.notification.discord.DiscordNotificationSender;
 import pl.teksusik.upmine.notification.discord.DiscordNotificationSettings;
 import pl.teksusik.upmine.notification.dto.NotificationSettingsDto;
-import pl.teksusik.upmine.notification.repository.NotificationRepository;
+import pl.teksusik.upmine.storage.Repository;
+import pl.teksusik.upmine.web.CrudService;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class NotificationService {
-    private final Map<NotificationType, NotificationSender> notificationSenders = new HashMap<>(Map.of(
-        NotificationType.DISCORD, new DiscordNotificationSender()
-    ));
+public class NotificationService extends CrudService<NotificationSettings, NotificationSettingsDto> {
+    private final Map<NotificationType, NotificationSender> notificationSenders = new HashMap<>();
 
-    private final NotificationRepository notificationRepository;
-
-    public NotificationService(NotificationRepository notificationRepository) {
-        this.notificationRepository = notificationRepository;
+    public NotificationService(Repository<NotificationSettings> repository) {
+        super(repository);
     }
 
-    public long count() {
-        return this.notificationRepository.count();
-    }
-
-    public NotificationSettings save(NotificationSettings settings) {
-        return this.notificationRepository.save(settings);
-    }
-
-    public Optional<NotificationSettings> findByUuid(UUID uuid) {
-        return this.notificationRepository.findByUuid(uuid);
-    }
-
-    public List<NotificationSettings> findAll() {
-        return this.notificationRepository.findAll();
-    }
-
-    public List<NotificationSettings> findByMonitorUuid(UUID monitorUuid) {
-        return this.notificationRepository.findByMonitorUuid(monitorUuid);
-    }
-
-    public boolean deleteByUuid(UUID uuid) {
-        return this.notificationRepository.deleteByUuid(uuid);
-    }
-
-    public void sendNotification(Monitor monitor, Heartbeat heartbeat) {
-        for (NotificationSettings settings : monitor.getNotificationSettings()) {
-            NotificationSender sender = this.notificationSenders.get(settings.getType());
-            if (sender == null) {
-                continue;
-            }
-
-            sender.sendNotification(monitor, heartbeat, settings);
-        }
-    }
-
-    public Optional<NotificationSettings> createNotificationSettings(NotificationSettingsDto notificationSettingsDto) {
+    @Override
+    public Optional<NotificationSettings> create(NotificationSettingsDto notificationSettingsDto) {
         UUID uuid = UUID.randomUUID();
         String name = notificationSettingsDto.getName();
         NotificationType type = NotificationType.valueOf(notificationSettingsDto.getType());
@@ -75,12 +36,13 @@ public class NotificationService {
             return Optional.empty();
         }
 
-        NotificationSettings createdNotificationSettings = this.notificationRepository.save(notificationSettings);
+        NotificationSettings createdNotificationSettings = this.repository.save(notificationSettings);
         return Optional.ofNullable(createdNotificationSettings);
     }
 
-    public Optional<NotificationSettings> updateNotificationSettings(UUID uuid, NotificationSettingsDto notificationSettingsDto) {
-        Optional<NotificationSettings> notificationSettingsOptional = this.notificationRepository.findByUuid(uuid);
+    @Override
+    public Optional<NotificationSettings> update(UUID uuid, NotificationSettingsDto notificationSettingsDto) {
+        Optional<NotificationSettings> notificationSettingsOptional = this.repository.findByUuid(uuid);
         if (notificationSettingsOptional.isEmpty()) {
             return Optional.empty();
         }
@@ -115,7 +77,22 @@ public class NotificationService {
             }
         }
 
-        NotificationSettings savedNotificationSettings = this.notificationRepository.save(notificationSettings);
+        NotificationSettings savedNotificationSettings = this.repository.save(notificationSettings);
         return Optional.ofNullable(savedNotificationSettings);
+    }
+
+    public void sendNotification(Monitor monitor, Heartbeat heartbeat) {
+        for (NotificationSettings settings : monitor.getNotificationSettings()) {
+            NotificationSender sender = this.notificationSenders.get(settings.getType());
+            if (sender == null) {
+                continue;
+            }
+
+            sender.sendNotification(monitor, heartbeat, settings);
+        }
+    }
+
+    public void registerNotificationService(NotificationType notificationType, NotificationSender notificationSender) {
+        this.notificationSenders.put(notificationType, notificationSender);
     }
 }

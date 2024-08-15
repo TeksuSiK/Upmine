@@ -11,9 +11,10 @@ import pl.teksusik.upmine.monitor.docker.DockerMonitor;
 import pl.teksusik.upmine.monitor.dto.MonitorDto;
 import pl.teksusik.upmine.monitor.http.HttpMonitor;
 import pl.teksusik.upmine.monitor.ping.PingMonitor;
-import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.notification.NotificationSettings;
 import pl.teksusik.upmine.notification.service.NotificationService;
+import pl.teksusik.upmine.storage.Repository;
+import pl.teksusik.upmine.web.CrudService;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -23,47 +24,28 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class MonitorService {
+public class MonitorService extends CrudService<Monitor, MonitorDto> {
     private final Map<MonitorType, AvailabilityChecker> availabilityCheckers = new HashMap<>();
 
     private final DockerHostService dockerHostService;
     private final NotificationService notificationService;
-    private final MonitorRepository monitorRepository;
     private final AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
-    public MonitorService(DockerHostService dockerHostService, NotificationService notificationService, MonitorRepository monitorRepository, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+    public MonitorService(Repository<Monitor> repository, DockerHostService dockerHostService, NotificationService notificationService, AvailabilityCheckerScheduler availabilityCheckerScheduler) {
+        super(repository);
         this.dockerHostService = dockerHostService;
         this.notificationService = notificationService;
-        this.monitorRepository = monitorRepository;
         this.availabilityCheckerScheduler = availabilityCheckerScheduler;
     }
 
-    public void registerAvailabilityChecker(MonitorType monitorType, AvailabilityChecker availabilityChecker) {
-        this.availabilityCheckers.put(monitorType, availabilityChecker);
-    }
-
-    public long count() {
-        return this.monitorRepository.count();
-    }
-
-    public Monitor save(Monitor monitor) {
-        return this.monitorRepository.save(monitor);
-    }
-
-    public Optional<Monitor> findByUuid(UUID uuid) {
-        return this.monitorRepository.findByUuid(uuid);
-    }
-
-    public List<Monitor> findAll() {
-        return this.monitorRepository.findAll();
-    }
-
+    @Override
     public boolean deleteByUuid(UUID uuid) {
         this.availabilityCheckerScheduler.deleteJob(uuid);
-        return this.monitorRepository.deleteByUuid(uuid);
+        return super.deleteByUuid(uuid);
     }
 
-    public Optional<Monitor> createMonitor(MonitorDto monitorDto) {
+    @Override
+    public Optional<Monitor> create(MonitorDto monitorDto) {
         UUID uuid = UUID.randomUUID();
         String name = monitorDto.getName();
 
@@ -92,13 +74,14 @@ public class MonitorService {
             return Optional.empty();
         }
 
-        Monitor createdMonitor = this.monitorRepository.save(monitor);
+        Monitor createdMonitor = this.repository.save(monitor);
         this.availabilityCheckerScheduler.createJob(createdMonitor);
         return Optional.of(createdMonitor);
     }
 
-    public Optional<Monitor> updateMonitor(UUID uuid, MonitorDto monitorDto) {
-        Optional<Monitor> monitorOptional = this.monitorRepository.findByUuid(uuid);
+    @Override
+    public Optional<Monitor> update(UUID uuid, MonitorDto monitorDto) {
+        Optional<Monitor> monitorOptional = this.repository.findByUuid(uuid);
         if (monitorOptional.isEmpty()) {
             return Optional.empty();
         }
@@ -179,7 +162,7 @@ public class MonitorService {
             monitor.setNotificationSettings(newNotificationSettingsList);
         }
 
-        Monitor savedMonitor = this.monitorRepository.save(monitor);
+        Monitor savedMonitor = this.repository.save(monitor);
         this.availabilityCheckerScheduler.rescheduleJob(savedMonitor);
         return Optional.of(savedMonitor);
     }
@@ -189,7 +172,11 @@ public class MonitorService {
         Heartbeat heartbeat = availabilityChecker.checkAvailability(monitor);
         monitor.addHeartbeat(heartbeat);
 
-        this.monitorRepository.save(monitor);
+        this.repository.save(monitor);
         return heartbeat;
+    }
+
+    public void registerAvailabilityChecker(MonitorType monitorType, AvailabilityChecker availabilityChecker) {
+        this.availabilityCheckers.put(monitorType, availabilityChecker);
     }
 }

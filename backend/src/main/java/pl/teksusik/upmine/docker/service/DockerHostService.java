@@ -9,6 +9,8 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import pl.teksusik.upmine.docker.DockerHost;
 import pl.teksusik.upmine.docker.dto.DockerHostDto;
 import pl.teksusik.upmine.docker.repository.DockerHostRepository;
+import pl.teksusik.upmine.storage.Repository;
+import pl.teksusik.upmine.web.CrudService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,48 +18,28 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class DockerHostService {
+public class DockerHostService extends CrudService<DockerHost, DockerHostDto> {
     private final Map<UUID, DockerClient> clients = new HashMap<>();
 
-    private final DockerHostRepository dockerHostRepository;
-
-    public DockerHostService(DockerHostRepository dockerHostRepository) {
-        this.dockerHostRepository = dockerHostRepository;
+    public DockerHostService(Repository<DockerHost> repository) {
+        super(repository);
     }
 
-    public long count() {
-        return this.dockerHostRepository.count();
-    }
-
-    public DockerHost save(DockerHost dockerHost) {
-        return this.dockerHostRepository.save(dockerHost);
-    }
-
-    public Optional<DockerHost> findByUuid(UUID uuid) {
-        return this.dockerHostRepository.findByUuid(uuid);
-    }
-
-    public List<DockerHost> findAll() {
-        return this.dockerHostRepository.findAll();
-    }
-
-    public boolean deleteByUuid(UUID uuid) {
-        return this.dockerHostRepository.deleteByUuid(uuid);
-    }
-
-    public Optional<DockerHost> createDockerHost(DockerHostDto dockerHostDto) {
+    @Override
+    public Optional<DockerHost> create(DockerHostDto dockerHostDto) {
         UUID uuid = UUID.randomUUID();
         String name = dockerHostDto.getName();
         String address = dockerHostDto.getAddress();
 
         DockerHost dockerHost = new DockerHost(uuid, name, address);
-        DockerHost createdDockerHost = this.dockerHostRepository.save(dockerHost);
+        DockerHost createdDockerHost = this.repository.save(dockerHost);
         this.register(dockerHost);
         return Optional.of(createdDockerHost);
     }
 
-    public Optional<DockerHost> updateDockerHost(UUID uuid, DockerHostDto dockerHostDto) {
-        Optional<DockerHost> dockerHostOptional = this.dockerHostRepository.findByUuid(uuid);
+    @Override
+    public Optional<DockerHost> update(UUID uuid, DockerHostDto dockerHostDto) {
+        Optional<DockerHost> dockerHostOptional = this.repository.findByUuid(uuid);
         if (dockerHostOptional.isEmpty()) {
             return Optional.empty();
         }
@@ -75,13 +57,13 @@ public class DockerHostService {
             dockerHost.setAddress(newAddress);
         }
 
-        DockerHost updatedDockerHost = this.dockerHostRepository.save(dockerHost);
+        DockerHost updatedDockerHost = this.repository.save(dockerHost);
         this.register(dockerHost);
         return Optional.of(updatedDockerHost);
     }
 
     public void registerExistingHosts() {
-        this.dockerHostRepository.findAll()
+        this.repository.findAll()
                 .forEach(this::register);
     }
 
