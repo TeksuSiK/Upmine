@@ -15,7 +15,7 @@ public abstract class CrudController<T, DTO> {
 
     public void getAll(Context context) {
         context.status(HttpStatus.OK)
-                .json(this.service);
+                .json(this.service.findAll());
     }
 
     public void getByUuid(Context context) {
