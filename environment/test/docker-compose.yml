@@ -1,0 +1,15 @@
+services:
+  mariadb:
+    image: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: "upmine"
+      MYSQL_USER: "upmine"
+      MYSQL_PASSWORD: "upmine"
+      MYSQL_DATABASE: "upmine"
+    ports:
+      - "3306:3306"
+    volumes:
+      - upmine-data:/var/lib/mysql
+
+volumes:
+  upmine-data:
