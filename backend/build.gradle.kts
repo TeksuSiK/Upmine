@@ -5,6 +5,8 @@ plugins {
 group = "pl.teksusik.upmine"
 version = "1.0-SNAPSHOT"
 
+val javalinVersion = "6.1.3"
+
 repositories {
     mavenCentral()
     maven(url = "https://storehouse.okaeri.eu/repository/maven-public/")
@@ -21,9 +23,13 @@ dependencies {
 
     implementation("org.quartz-scheduler:quartz:2.3.0")
 
-    implementation("io.javalin:javalin:6.1.3")
+    implementation("io.javalin:javalin:$javalinVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+
+    implementation("io.javalin.community.openapi:javalin-openapi-plugin:$javalinVersion")
+    implementation("io.javalin.community.openapi:javalin-swagger-plugin:$javalinVersion")
+    annotationProcessor("io.javalin.community.openapi:openapi-annotation-processor:$javalinVersion")
 
     implementation("com.github.docker-java:docker-java:3.4.0")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:3.4.0")

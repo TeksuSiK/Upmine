@@ -9,6 +9,7 @@ import pl.teksusik.upmine.availability.scheduler.AvailabilityCheckerScheduler;
 import pl.teksusik.upmine.configuration.ApplicationConfiguration;
 import pl.teksusik.upmine.configuration.ConfigurationFactory;
 import pl.teksusik.upmine.docker.host.controller.DockerHostController;
+import pl.teksusik.upmine.docker.host.controller.DockerHostHandler;
 import pl.teksusik.upmine.docker.host.repository.DockerHostRepository;
 import pl.teksusik.upmine.docker.host.repository.SQLDockerHostRepository;
 import pl.teksusik.upmine.docker.host.service.DockerHostService;
@@ -16,17 +17,20 @@ import pl.teksusik.upmine.heartbeat.repository.HeartbeatRepository;
 import pl.teksusik.upmine.heartbeat.repository.SQLHeartbeatRepository;
 import pl.teksusik.upmine.monitor.MonitorType;
 import pl.teksusik.upmine.monitor.controller.MonitorController;
+import pl.teksusik.upmine.monitor.controller.MonitorHandler;
 import pl.teksusik.upmine.monitor.repository.MonitorRepository;
 import pl.teksusik.upmine.monitor.repository.SQLMonitorRepository;
 import pl.teksusik.upmine.monitor.service.MonitorService;
 import pl.teksusik.upmine.notification.NotificationType;
 import pl.teksusik.upmine.notification.controller.NotificationController;
+import pl.teksusik.upmine.notification.controller.NotificationHandler;
 import pl.teksusik.upmine.notification.discord.DiscordNotificationSender;
 import pl.teksusik.upmine.notification.repository.NotificationRepository;
 import pl.teksusik.upmine.notification.repository.SQLNotificationRepository;
 import pl.teksusik.upmine.notification.service.NotificationService;
 import pl.teksusik.upmine.push.PushAvailabilityChecker;
 import pl.teksusik.upmine.push.controller.PushController;
+import pl.teksusik.upmine.push.controller.PushHandler;
 import pl.teksusik.upmine.push.service.PushService;
 import pl.teksusik.upmine.storage.SQLStorage;
 import pl.teksusik.upmine.web.UpmineWebServer;
@@ -41,19 +45,23 @@ public class Upmine {
     private DockerHostRepository dockerHostRepository;
     private DockerHostService dockerHostService;
     private DockerHostController dockerHostController;
+    private DockerHostHandler dockerHostHandler;
 
     private HeartbeatRepository heartbeatRepository;
 
     private NotificationRepository notificationRepository;
     private NotificationService notificationService;
     private NotificationController notificationController;
+    private NotificationHandler notificationHandler;
 
     private MonitorRepository monitorRepository;
     private MonitorService monitorService;
     private MonitorController monitorController;
+    private MonitorHandler monitorHandler;
 
     private PushService pushService;
     private PushController pushController;
+    private PushHandler pushHandler;
 
     private AvailabilityCheckerScheduler availabilityCheckerScheduler;
 
@@ -77,6 +85,7 @@ public class Upmine {
         this.dockerHostService = new DockerHostService(this.dockerHostRepository);
         this.dockerHostService.registerExistingHosts();
         this.dockerHostController = new DockerHostController(this.dockerHostService);
+        this.dockerHostHandler = new DockerHostHandler(this.dockerHostController);
 
         this.heartbeatRepository = new SQLHeartbeatRepository(this.storage);
 
@@ -85,6 +94,7 @@ public class Upmine {
         this.notificationService = new NotificationService(this.notificationRepository);
         this.notificationService.registerNotificationService(NotificationType.DISCORD, new DiscordNotificationSender());
         this.notificationController = new NotificationController(this.notificationService);
+        this.notificationHandler = new NotificationHandler(this.notificationController);
 
         this.monitorRepository = new SQLMonitorRepository(this.storage, this.dockerHostRepository, this.heartbeatRepository, this.notificationRepository);
         this.monitorRepository.createTablesIfNotExists();
@@ -95,9 +105,11 @@ public class Upmine {
         this.monitorService.registerAvailabilityChecker(MonitorType.DOCKER, new DockerAvailabilityChecker(this.dockerHostService));
         this.monitorService.registerAvailabilityChecker(MonitorType.PUSH, new PushAvailabilityChecker());
         this.monitorController = new MonitorController(this.monitorService);
+        this.monitorHandler = new MonitorHandler(this.monitorController);
 
         this.pushService = new PushService(this.monitorService);
         this.pushController = new PushController(this.pushService);
+        this.pushHandler = new PushHandler(this.pushController);
 
         this.availabilityCheckerScheduler.setMonitorService(this.monitorService);
         this.availabilityCheckerScheduler.setNotificationService(this.notificationService);
@@ -107,21 +119,21 @@ public class Upmine {
         ApplicationConfiguration.WebConfiguration webConfiguration = this.configuration.getWebConfiguration();
         this.webServer = new UpmineWebServer(webConfiguration);
         this.webServer.launch()
-                .get("/api/monitors", this.monitorController::getAll)
-                .get("/api/monitors/{uuid}", this.monitorController::getByUuid)
-                .post("/api/monitors", this.monitorController::create)
-                .delete("/api/monitors/{uuid}", this.monitorController::deleteByUuid)
-                .put("/api/monitors/{uuid}", this.monitorController::update)
-                .get("/api/notificationSettings", this.notificationController::getAll)
-                .get("/api/notificationSettings/{uuid}", this.notificationController::getByUuid)
-                .post("/api/notificationSettings", this.notificationController::create)
-                .delete("/api/notificationSettings/{uuid}", this.notificationController::deleteByUuid)
-                .put("/api/notificationSettings/{uuid}", this.notificationController::update)
-                .get("/api/dockerHost", this.dockerHostController::getAll)
-                .get("/api/dockerHost/{uuid}", this.dockerHostController::getByUuid)
-                .post("/api/dockerHost", this.dockerHostController::create)
-                .delete("/api/dockerHost/{uuid}", this.dockerHostController::deleteByUuid)
-                .put("/api/dockerHost/{uuid}", this.dockerHostController::update)
-                .get("/api/push/{secret}", this.pushController::acceptPush);
+                .get("/api/monitors", this.monitorHandler::getAll)
+                .get("/api/monitors/{uuid}", this.monitorHandler::getByUuid)
+                .post("/api/monitors", this.monitorHandler::create)
+                .delete("/api/monitors/{uuid}", this.monitorHandler::deleteByUuid)
+                .put("/api/monitors/{uuid}", this.monitorHandler::update)
+                .get("/api/notificationSettings", this.notificationHandler::getAll)
+                .get("/api/notificationSettings/{uuid}", this.notificationHandler::getByUuid)
+                .post("/api/notificationSettings", this.notificationHandler::create)
+                .delete("/api/notificationSettings/{uuid}", this.notificationHandler::deleteByUuid)
+                .put("/api/notificationSettings/{uuid}", this.notificationHandler::update)
+                .get("/api/dockerHost", this.dockerHostHandler::getAll)
+                .get("/api/dockerHost/{uuid}", this.dockerHostHandler::getByUuid)
+                .post("/api/dockerHost", this.dockerHostHandler::create)
+                .delete("/api/dockerHost/{uuid}", this.dockerHostHandler::deleteByUuid)
+                .put("/api/dockerHost/{uuid}", this.dockerHostHandler::update)
+                .get("/api/push/{secret}", this.pushHandler::acceptPush);
     }
 }
